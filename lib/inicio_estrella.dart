@@ -81,10 +81,7 @@ class _InicioEstrellaState extends State<InicioEstrella> {
   }
 
   void _abrirCrud() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const CrudApi()),
-    );
+    setState(() => _seccion = 2);
   }
 
   void _cambiarSeccionDesdeMenu(int indice) {
@@ -193,24 +190,7 @@ class _InicioEstrellaState extends State<InicioEstrella> {
               },
             ),
 
-            const SizedBox(height: 28),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () => setState(() => _seccion = 1),
-                  icon: const Icon(Icons.school),
-                  label: const Text('Ver prácticas'),
-                ),
-                ElevatedButton.icon(
-                  onPressed: _abrirCrud,
-                  icon: const Icon(Icons.cloud),
-                  label: const Text('Abrir CRUD'),
-                ),
-              ],
-            ),
+
           ],
         ),
       ),
@@ -256,7 +236,7 @@ class _InicioEstrellaState extends State<InicioEstrella> {
 
   @override
   Widget build(BuildContext context) {
-    final nombres = ['Inicio', 'Mis prácticas', 'Contador'];
+    final nombres = ['Inicio', 'Mis prácticas', 'CRUD con API'];
 
     return Scaffold(
       backgroundColor: const Color(0xFF13132B),
@@ -302,11 +282,6 @@ class _InicioEstrellaState extends State<InicioEstrella> {
                 onTap: () => _cambiarSeccionDesdeMenu(0),
               ),
               ListTile(
-                leading: const Icon(Icons.timer),
-                title: const Text('Contador'),
-                onTap: () => _cambiarSeccionDesdeMenu(2),
-              ),
-              ListTile(
                 leading: const Icon(Icons.cloud),
                 title: const Text('CRUD con API'),
                 onTap: () {
@@ -340,9 +315,14 @@ class _InicioEstrellaState extends State<InicioEstrella> {
         ),
       ),
 
-      body: _seccion == 1
-          ? _listaPracticas()
-          : _pantallaEstrella(mostrarContador: _seccion == 2),
+      body: IndexedStack(
+        index: _seccion,
+        children: [
+          _pantallaEstrella(),
+          _listaPracticas(),
+          const CrudApi(),
+        ],
+      ),
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _seccion,
@@ -360,8 +340,8 @@ class _InicioEstrellaState extends State<InicioEstrella> {
             label: 'Prácticas',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.timer_rounded),
-            label: 'Contador',
+            icon: Icon(Icons.cloud_rounded),
+            label: 'CRUD',
           ),
         ],
       ),
@@ -369,7 +349,6 @@ class _InicioEstrellaState extends State<InicioEstrella> {
   }
 }
 
-// Estrella de cinco puntas, dorada y con ojos.
 class PintorEstrella extends CustomPainter {
   const PintorEstrella({required this.tiempo});
 
@@ -377,132 +356,27 @@ class PintorEstrella extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final centro = Offset(size.width / 2, size.height / 2);
-    final radio = size.width * 0.43;
-    final interior = radio * 0.48;
+    final lado = size.shortestSide;
+    final ancho = lado * 0.84;
+    final alto = lado * 0.39;
 
-    // Resplandor alrededor de la estrella.
-    canvas.drawCircle(
-      centro,
-      radio * 1.15,
-      Paint()
-        ..shader = const RadialGradient(
-          colors: [
-            Color(0x66FFD54F),
-            Color(0x00FFD54F),
-          ],
-        ).createShader(
-          Rect.fromCircle(center: centro, radius: radio * 1.15),
-        ),
-    );
-
-    final estrella = Path();
-
-    for (int i = 0; i < 10; i++) {
-      final angulo = -math.pi / 2 + i * math.pi / 5;
-      final distancia = i.isEven ? radio : interior;
-
-      final punto = Offset(
-        centro.dx + math.cos(angulo) * distancia,
-        centro.dy + math.sin(angulo) * distancia,
-      );
-
-      if (i == 0) {
-        estrella.moveTo(punto.dx, punto.dy);
-      } else {
-        estrella.lineTo(punto.dx, punto.dy);
-      }
-    }
-
-    estrella.close();
-
-    canvas.drawShadow(estrella, Colors.black, 10, false);
-
-    // Color y volumen.
-    canvas.drawPath(
-      estrella,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFFFC0),
-            Color(0xFFFFF600),
-            Color(0xFFFFD000),
-            Color(0xFFFFA000),
-          ],
-          stops: [0, 0.3, 0.7, 1],
-        ).createShader(estrella.getBounds()),
-    );
-
-    canvas.drawPath(
-      estrella,
-      Paint()
-        ..color = const Color(0xFFFFF59D)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3
-        ..strokeJoin = StrokeJoin.round,
-    );
-
-    // Brillo suave en la parte superior.
     canvas.save();
-    canvas.clipPath(estrella);
+    canvas.translate(size.width / 2, size.height / 2);
+    canvas.rotate(-math.pi / 6);
 
-    canvas.drawOval(
+    final capsula = RRect.fromRectAndRadius(
       Rect.fromCenter(
-        center: Offset(centro.dx - radio * 0.15, centro.dy - radio * 0.5),
-        width: radio * 1.5,
-        height: radio * 0.65,
+        center: Offset.zero,
+        width: ancho,
+        height: alto,
       ),
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0x88FFFFFF), Color(0x00FFFFFF)],
-        ).createShader(estrella.getBounds()),
+      Radius.circular(alto / 2),
     );
 
+    canvas.drawRRect(capsula, Paint()..color = const Color(0xFFFF0000));
     canvas.restore();
-
-    // Parpadeo breve cada cuatro segundos.
-    final fase = tiempo % 4;
-    final apertura = fase < 0.16 ? 0.12 : 1.0;
-    final altoOjo = radio * 0.34 * apertura;
-    final anchoOjo = radio * 0.12;
-
-    for (final lado in [-1, 1]) {
-      final ojo = Offset(
-        centro.dx + lado * radio * 0.19,
-        centro.dy - radio * 0.03,
-      );
-
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: ojo,
-          width: anchoOjo,
-          height: altoOjo,
-        ),
-        Paint()..color = const Color(0xFF241700),
-      );
-
-      if (apertura > 0.5) {
-        canvas.drawOval(
-          Rect.fromCenter(
-            center: Offset(
-              ojo.dx - anchoOjo * 0.1,
-              ojo.dy - altoOjo * 0.22,
-            ),
-            width: anchoOjo * 0.42,
-            height: altoOjo * 0.38,
-          ),
-          Paint()..color = Colors.white,
-        );
-      }
-    }
   }
 
   @override
-  bool shouldRepaint(covariant PintorEstrella oldDelegate) {
-    return oldDelegate.tiempo != tiempo;
-  }
+  bool shouldRepaint(covariant PintorEstrella anterior) => false;
 }

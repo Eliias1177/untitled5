@@ -268,9 +268,6 @@ class _CrudApiState extends State<CrudApi> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('CRUD con API'),
-      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
