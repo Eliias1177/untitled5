@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-
+import 'package:flutter_compass/flutter_compass.dart';
 import 'crud_api.dart';
 import 'practica1.dart' as practica1;
 import 'practica2.dart' as practica2;
@@ -28,6 +28,7 @@ class _InicioEstrellaState extends State<InicioEstrella> {
 
   late final Timer _timer;
   int _seccion = 0;
+  late final Stream<CompassEvent>? _brujula = FlutterCompass.events;
 
   final List<String> _titulos = [
     'Texto e imagen',
@@ -97,7 +98,7 @@ class _InicioEstrellaState extends State<InicioEstrella> {
     return '$horas:$minutos:$resto';
   }
 
-  Widget _pantallaEstrella({bool mostrarContador = false}) {
+  Widget _pantallaEstrella() {
     final ancho = MediaQuery.of(context).size.width;
     final tamano = math.min(300.0, ancho * 0.78);
 
@@ -106,27 +107,37 @@ class _InicioEstrellaState extends State<InicioEstrella> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            Text(
-              mostrarContador ? '' : '',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              mostrarContador
-                  ? '.'
-                  : '.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70),
-            ),
-            const SizedBox(height: 30),
-
             ValueListenableBuilder<double>(
               valueListenable: _tiempo,
+              child: StreamBuilder<CompassEvent>(
+                stream: _brujula,
+                builder: (context, lectura) {
+                  final rumbo = lectura.data?.heading;
+                  if (_brujula == null || lectura.hasError ||
+                      rumbo == null || !rumbo.isFinite) {
+                    final esperando = _brujula != null &&
+                        !lectura.hasError &&
+                        lectura.connectionState == ConnectionState.waiting;
+                    return SizedBox(
+                      width: tamano,
+                      height: tamano,
+                      child: Center(
+                        child: Text(
+                          esperando ? 'Buscando señal de brújula…' : 'Brújula no disponible',
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                    );
+                  }
+                  return Transform.rotate(
+                    angle: -math.pi / 2 - rumbo * math.pi / 180,
+                    child: CustomPaint(
+                      size: Size(tamano, tamano),
+                      painter: const PintorCapsula(),
+                    ),
+                  );
+                },
+              ),
               builder: (context, tiempo, child) {
                 final segundos = tiempo.floor();
 
@@ -136,13 +147,7 @@ class _InicioEstrellaState extends State<InicioEstrella> {
                       offset: Offset(0, math.sin(tiempo * 2) * 10),
                       child: Transform.scale(
                         scale: 1 + math.sin(tiempo * 2) * 0.025,
-                        child: Transform.rotate(
-                          angle: tiempo * math.pi / 8,
-                          child: CustomPaint(
-                            size: Size(tamano, tamano),
-                            painter: PintorEstrella(tiempo: tiempo),
-                          ),
-                        ),
+                        child: child,
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -349,10 +354,8 @@ class _InicioEstrellaState extends State<InicioEstrella> {
   }
 }
 
-class PintorEstrella extends CustomPainter {
-  const PintorEstrella({required this.tiempo});
-
-  final double tiempo;
+class PintorCapsula extends CustomPainter {
+  const PintorCapsula();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -362,7 +365,6 @@ class PintorEstrella extends CustomPainter {
 
     canvas.save();
     canvas.translate(size.width / 2, size.height / 2);
-    canvas.rotate(-math.pi / 6);
 
     final capsula = RRect.fromRectAndRadius(
       Rect.fromCenter(
@@ -378,5 +380,5 @@ class PintorEstrella extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant PintorEstrella anterior) => false;
+  bool shouldRepaint(covariant PintorCapsula anterior) => false;
 }
